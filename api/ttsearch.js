@@ -2,29 +2,42 @@ const axios = require("axios");
 
 module.exports = async (req, res) => {
   try {
-    const query = req.query.query;
+    const query = String(req.query.query || "").trim();
 
     if (!query) {
       return res.status(400).json({
         status: false,
-        message: "Query is required"
+        message: "Query is required",
+        example: "/api/ttsearch?query=music"
       });
     }
 
-    // TikTok search implementation goes here
+    /*
+      Put your authorized TikTok/public search provider here.
+
+      Example:
+      const response = await axios.get(
+        `YOUR_SEARCH_PROVIDER_URL?q=${encodeURIComponent(query)}`
+      );
+
+      const results = response.data.results || [];
+    */
+
+    const results = [];
 
     return res.status(200).json({
       status: true,
       query,
-      results: []
+      total: results.length,
+      results
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("TikTok Search Error:", error.message);
 
     return res.status(500).json({
       status: false,
-      message: "Search failed"
+      message: "TikTok search failed"
     });
   }
 };
