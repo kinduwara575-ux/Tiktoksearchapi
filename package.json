@@ -1,11 +1,5 @@
 {
   "name": "tiktok-search-api",
   "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node api/ttsearch.js"
-  },
-  "dependencies": {
-    "axios": "^1.12.2"
-  }
+  "private": true
 }
