@@ -1,42 +1,34 @@
 export default async function handler(req, res) {
-  try {
-    const q = req.query.q;
+  const query = req.query.q;
 
-    if (!q || typeof q !== "string" || !q.trim()) {
-      return res.status(400).json({
-        status: false,
-        message: "Search query is required"
-      });
-    }
-
-    const searchUrl = new URL("https://www.google.com/search");
-
-    searchUrl.search = new URLSearchParams({
-      q: `site:tiktok.com "${q.trim()}"`,
-      num: "20",
-      hl: "en",
-      gl: "us"
+  if (!query) {
+    return res.status(400).json({
+      status: false,
+      message: "Please enter a search query"
     });
+  }
 
-    const response = await fetch(searchUrl, {
+  try {
+    const url = new URL("https://www.google.com/search");
+
+    url.searchParams.set(
+      "q",
+      `site:tiktok.com "${query}"`
+    );
+    url.searchParams.set("num", "20");
+    url.searchParams.set("hl", "en");
+    url.searchParams.set("gl", "us");
+
+    const response = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
-        "Accept":
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0.0.0 Safari/537.36"
       }
     });
 
     const html = await response.text();
 
-    if (!response.ok) {
-      return res.status(502).json({
-        status: false,
-        message: `Search provider error: ${response.status}`
-      });
-    }
-
-    const matches =
+    const urls =
       html.match(
         /https?:\/\/(?:www\.)?tiktok\.com\/[^"'<>\\\s]+/gi
       ) || [];
@@ -44,53 +36,43 @@ export default async function handler(req, res) {
     const results = [];
     const seen = new Set();
 
-    for (let rawUrl of matches) {
+    for (let item of urls) {
+      item = item
+        .replace(/\\u003d/g, "=")
+        .replace(/\\u0026/g, "&")
+        .replace(/\\\//g, "/");
+
       try {
-        rawUrl = rawUrl
-          .replace(/\\u003d/g, "=")
-          .replace(/\\u0026/g, "&")
-          .replace(/\\\//g, "/");
+        const parsed = new URL(item);
 
-        const url = new URL(rawUrl);
+        if (!parsed.hostname.includes("tiktok.com")) continue;
+        if (!parsed.pathname.includes("/video/")) continue;
 
-        if (!/^(www\.)?tiktok\.com$/i.test(url.hostname)) {
-          continue;
-        }
+        parsed.search = "";
+        parsed.hash = "";
 
-        url.hash = "";
+        const clean = parsed.toString();
 
-        const cleanUrl = url.toString();
-
-        if (seen.has(cleanUrl)) continue;
-
-        if (
-          url.pathname.includes("/video/") ||
-          /^\/@[^/]+\/video\//.test(url.pathname)
-        ) {
-          seen.add(cleanUrl);
-
+        if (!seen.has(clean)) {
+          seen.add(clean);
           results.push({
-            url: cleanUrl
+            url: clean
           });
         }
-      } catch {
-        // Ignore invalid URLs
-      }
+      } catch {}
     }
 
     return res.status(200).json({
       status: true,
-      query: q.trim(),
+      query,
       total: results.length,
       results
     });
 
   } catch (error) {
-    console.error(error);
-
     return res.status(500).json({
       status: false,
-      message: error.message || "Search failed"
+      message: error.message
     });
   }
 }
