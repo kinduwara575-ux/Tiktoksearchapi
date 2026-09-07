@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "functions": {
+    "api/tiktok-search.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/tiktok-search",
+      "dest": "/api/tiktok-search.js"
+    }
+  ]
+}
